@@ -405,6 +405,15 @@ function reloadFrame() {
 function openExternal() {
   if (activeTool) window.open(TOOLS[activeTool].url, '_blank');
 }
+
+// ── MRP → Scheduler postMessage relay ──────────────
+window.addEventListener('message', e => {
+  if (!e.data || e.data.type !== 'MRP_STOCK_UPDATE') return;
+  const schedFrame = document.getElementById('frame-scheduler');
+  if (schedFrame && schedFrame.contentWindow) {
+    schedFrame.contentWindow.postMessage(e.data, '*');
+  }
+});
 </script>
 </body>
 </html>
