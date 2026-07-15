@@ -364,6 +364,20 @@ window.addEventListener('load', () => {
 });
 
 // ── Tool switching ─────────────────────────────
+// If the MRP Tool was already open and broadcasting stock/BOM updates before the Scheduler
+// tab was ever opened, those broadcasts had nowhere to land (frame-scheduler didn't exist
+// yet), so the Scheduler would show no synced data until the next edit happened in the MRP
+// Tool. Whenever the Scheduler tab is opened, ask the MRP Tool iframe (if it's loaded) to
+// re-broadcast its current snapshot so the Scheduler is always up to date the moment you
+// look at it — not just on the next MRP edit.
+function requestMrpRebroadcast() {
+  if (!loaded['mrp']) return;
+  const mrpFrame = document.getElementById('frame-mrp');
+  if (mrpFrame && mrpFrame.contentWindow) {
+    mrpFrame.contentWindow.postMessage({ type: 'REQUEST_MRP_BROADCAST' }, '*');
+  }
+}
+
 function openTool(key) {
   if (activeTool === key) return;
   document.getElementById('welcome').classList.add('hidden');
@@ -383,12 +397,19 @@ function openTool(key) {
   const frame = document.getElementById('frame-' + key);
   if (!loaded[key]) {
     loaded[key] = true;
-    frame.onload = () => { document.getElementById('loader').classList.add('hidden'); frame.classList.add('visible'); };
-    setTimeout(() => { document.getElementById('loader').classList.add('hidden'); frame.classList.add('visible'); }, 4000);
+    frame.onload = () => {
+      document.getElementById('loader').classList.add('hidden'); frame.classList.add('visible');
+      if (key === 'scheduler') requestMrpRebroadcast();
+    };
+    setTimeout(() => {
+      document.getElementById('loader').classList.add('hidden'); frame.classList.add('visible');
+      if (key === 'scheduler') requestMrpRebroadcast();
+    }, 4000);
     frame.src = TOOLS[key].url;
   } else {
     document.getElementById('loader').classList.add('hidden');
     frame.classList.add('visible');
+    if (key === 'scheduler') requestMrpRebroadcast();
   }
 }
 
